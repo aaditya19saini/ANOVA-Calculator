@@ -1,51 +1,62 @@
-# ANOVA Calculator
+# 📊 ANOVA Calculator
 
-A unified **ANOVA Calculator** supporting both **One-Way** and **Two-Way** analyses. Built with Python, PySide6, NumPy, SciPy, and Matplotlib.
+A unified **Analysis of Variance (ANOVA)** desktop application supporting both **One-Way** and **Two-Way** analyses. Features an interactive GUI, embedded visualizations, post-hoc testing, and CSV export — all in a single app.
+
+Built with **Python · PySide6 · NumPy · SciPy · Matplotlib**
 
 ---
 
-## Features
+## ✨ Features
 
-- 🖥️ **Tabbed GUI** — Switch between One-Way and Two-Way ANOVA in a single app
-- 🧮 **Core Engines** — Clean `OneWayANOVA` and `TwoWayANOVA` classes for programmatic use
-- 🔬 **Post-Hoc Tests** — Tukey HSD, Bonferroni, and Scheffé pairwise comparisons
-- 📊 **Embedded Visualizations** — Box plots, bar charts (±SE), interaction plots, and residual diagnostics (Q-Q + histogram)
-- 📋 **Formatted Output** — ANOVA summary tables with significance stars (`*`, `**`, `***`)
-- 💾 **CSV Export** — Save ANOVA results to CSV
-- 🏷️ **Custom Names** — Name your groups/factors for readable output
-- ✅ **23 Unit Tests** — Comprehensive test coverage
+| Category               | Details                                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------------------ |
+| **Tabbed GUI**         | Switch between One-Way and Two-Way ANOVA in a single window                                |
+| **Core Engines**       | Clean `OneWayANOVA` and `TwoWayANOVA` classes for both GUI and programmatic use            |
+| **Post-Hoc Tests**     | Tukey HSD, Bonferroni correction, and Scheffé pairwise comparisons                         |
+| **Visualizations**     | Box plots, bar charts (±SE), interaction plots, and residual diagnostics (Q-Q + histogram) |
+| **Formatted Output**   | ANOVA summary tables with significance stars (`*`, `**`, `***`)                            |
+| **CSV Export**         | Save full ANOVA results to `.csv` files                                                    |
+| **Custom Naming**      | Name your groups and factors for readable, publication-ready output                        |
+| **Unbalanced Designs** | One-Way ANOVA supports groups of different sizes                                           |
+| **23 Unit Tests**      | Comprehensive coverage across logic, post-hoc, and edge cases                              |
 
-## Project Structure
+---
+
+## 🗂️ Project Structure
 
 ```
 ANOVA_CALC_final/
-├── one_way_logic.py     # One-Way ANOVA computation class
-├── two_way_logic.py     # Two-Way ANOVA computation class
-├── post_hoc.py          # Tukey HSD, Bonferroni, Scheffé
-├── visualizations.py    # Box plots, bar charts, interaction & residual plots
-├── anova_gui.py         # Unified PySide6 tabbed GUI
+├── anova_gui.py          # PySide6 tabbed GUI (entry point)
+├── one_way_logic.py      # One-Way ANOVA computation engine
+├── two_way_logic.py      # Two-Way ANOVA computation engine (balanced, with replication)
+├── post_hoc.py           # Tukey HSD, Bonferroni, Scheffé post-hoc tests
+├── visualizations.py     # Matplotlib chart generators (box, bar, interaction, residual)
 ├── tests/
-│   ├── test_one_way.py  # 7 tests — one-way logic
-│   ├── test_two_way.py  # 9 tests — two-way logic
-│   └── test_post_hoc.py # 7 tests — post-hoc functions
+│   ├── test_one_way.py   # 7 tests — one-way logic & edge cases
+│   ├── test_two_way.py   # 9 tests — two-way logic, SS/df decomposition, validation
+│   └── test_post_hoc.py  # 7 tests — Tukey, Bonferroni, Scheffé correctness
 └── README.md
 ```
 
-## Requirements
+---
+
+## 📋 Requirements
 
 - Python 3.9+
-- NumPy
-- SciPy
-- Matplotlib
-- PySide6
+- [NumPy](https://numpy.org/)
+- [SciPy](https://scipy.org/)
+- [Matplotlib](https://matplotlib.org/)
+- [PySide6](https://doc.qt.io/qtforpython-6/)
 
-## Installation
+### Installation
 
 ```bash
 pip install numpy scipy matplotlib PySide6
 ```
 
-## Usage
+---
+
+## 🚀 Usage
 
 ### GUI Application
 
@@ -53,40 +64,113 @@ pip install numpy scipy matplotlib PySide6
 python anova_gui.py
 ```
 
-**One-Way tab:** Enter data in columns (one per group). Configure group count, names, and rows. Click Calculate → Run Post-Hoc → Visualize.
+#### One-Way ANOVA Tab
 
-**Two-Way tab:** Set factor names, levels, and replicates. Generate the table, fill data, then Calculate → Run Post-Hoc → Visualize.
+1. Set the number of **groups** and **observations per group**
+2. Optionally enter custom **group names** (comma-separated)
+3. Click **Generate Table** → fill in your data
+4. **Calculate** → view the ANOVA table with F-statistic and p-value
+5. **Run Post-Hoc** → select Tukey HSD, Bonferroni, or Scheffé
+6. **Visualize** → view box plots, bar charts with error bars, and residual diagnostics
+7. **Save Results** → export to CSV
 
-Both tabs support **Reset** and **Save Results (CSV)**.
+#### Two-Way ANOVA Tab
+
+1. Set **Factor A name**, **Factor B name**, number of levels, and replicates per cell
+2. Click **Generate Table** → fill in the data grid
+3. **Calculate** → view the full ANOVA table (Factor A, Factor B, Interaction, Error)
+4. **Run Post-Hoc** → pairwise comparisons for each factor
+5. **Visualize** → interaction plots, bar charts, box plots, and residual diagnostics
+6. **Save Results** → export to CSV
+
+Both tabs include **Reset** to clear all data and start fresh.
+
+---
 
 ### Programmatic Usage
+
+Use the logic classes directly in your own scripts:
+
+#### One-Way ANOVA
 
 ```python
 from one_way_logic import OneWayANOVA
 
-data = [[12.5, 13.1, 11.8], [15.2, 16.0, 14.8], [18.1, 17.9, 19.2]]
+data = [
+    [12.5, 13.1, 11.8, 12.9, 12.2],
+    [15.2, 16.0, 14.8, 15.5, 16.2],
+    [18.1, 17.9, 19.2, 18.5, 17.6],
+]
 anova = OneWayANOVA(data, group_names=["Low", "Medium", "High"])
 results = anova.calculate()
 print(results["summary"])
+print(f"F = {results['F']:.4f}, p = {results['p_value']:.6f}")
 ```
+
+#### Two-Way ANOVA
 
 ```python
 from two_way_logic import TwoWayANOVA
 
+# data[i][j] = list of replicates for level i of Factor A, level j of Factor B
 data = [
-    [[12, 14, 13], [15, 16, 14]],
-    [[10, 11, 12], [13, 14, 12]],
+    [[12, 14, 13], [15, 16, 14], [18, 17, 19]],
+    [[10, 11, 12], [13, 14, 12], [16, 15, 17]],
 ]
 anova = TwoWayANOVA(data, factor_a_name="Fertilizer", factor_b_name="Watering")
 results = anova.calculate()
 print(results["summary"])
 ```
 
-## Running Tests
+#### Post-Hoc Tests
+
+```python
+from post_hoc import tukey_hsd, bonferroni, scheffe
+
+groups = [[10, 11, 12], [20, 21, 22], [30, 31, 32]]
+names = ["Low", "Medium", "High"]
+
+tukey = tukey_hsd(groups, names)
+print(tukey["summary"])
+
+bonf = bonferroni(groups, names, alpha=0.05)
+print(bonf["summary"])
+
+sch = scheffe(groups, names)
+print(sch["summary"])
+```
+
+---
+
+## 🧪 Running Tests
 
 ```bash
 python -m pytest tests/ -v
 ```
+
+All 23 tests cover:
+
+- **One-Way**: balanced/unbalanced designs, dictionary input, CSV export, residual checks, input validation
+- **Two-Way**: SS & df decomposition, interaction detection, custom naming, extra visualization fields
+- **Post-Hoc**: significance detection, p-value adjustment, comparison counts, Scheffé with provided MSE
+
+---
+
+## 📐 Statistical Methods
+
+### One-Way ANOVA
+
+Compares means across **k ≥ 2** independent groups. Supports balanced and unbalanced designs. Computes SS<sub>between</sub>, SS<sub>within</sub>, F-statistic, and p-value using the F-distribution.
+
+### Two-Way ANOVA
+
+Analyzes the effect of **two factors** (with replication) on a dependent variable. Decomposes variance into Factor A, Factor B, Interaction (A×B), and Error components. Requires a balanced design with ≥ 2 replicates per cell.
+
+### Post-Hoc Tests
+
+- **Tukey HSD** — simultaneous pairwise comparisons with 95% confidence intervals
+- **Bonferroni** — pairwise t-tests with family-wise error rate correction
+- **Scheffé** — conservative pairwise comparisons using the Scheffé F-statistic
 
 ---
 
