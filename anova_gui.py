@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QGridLayout, QTabWidget, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QTextEdit, QMessageBox, QSpinBox,
     QLineEdit, QFileDialog, QGroupBox, QScrollArea, QSplitter,
-    QSizePolicy,
+    QSizePolicy, QDialog, QFrame,
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -44,6 +44,37 @@ MONO_FONT = "font-family: Consolas, 'Courier New', monospace; font-size: 12px;"
 
 
 # ======================================================================
+# Visualization Popup Dialog
+# ======================================================================
+class VisualizationDialog(QDialog):
+    """Resizable popup window that displays matplotlib figures in a scroll area."""
+
+    def __init__(self, figures, title="ANOVA — Visualizations", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.resize(900, 700)
+        self.setMinimumSize(600, 400)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(10, 10, 10, 10)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setSpacing(20)
+
+        for fig in figures:
+            canvas = FigureCanvas(fig)
+            canvas.setMinimumHeight(400)
+            container_layout.addWidget(canvas)
+
+        container_layout.addStretch()
+        scroll.setWidget(container)
+        layout.addWidget(scroll)
+
+
+# ======================================================================
 # One-Way Tab
 # ======================================================================
 class OneWayTab(QWidget):
@@ -55,6 +86,7 @@ class OneWayTab(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
+        self._viz_dialog = None
 
         # ── Config row ──
         config_group = QGroupBox("Configuration")
@@ -84,10 +116,50 @@ class OneWayTab(QWidget):
 
         layout.addWidget(config_group)
 
+        # ── Action buttons toolbar (below config, above table) ──
+        action_group = QGroupBox("Actions")
+        action_layout = QHBoxLayout(action_group)
+        action_layout.setContentsMargins(8, 6, 8, 6)
+
+        calc_btn = QPushButton("Calculate ANOVA")
+        calc_btn.setStyleSheet(BTN_GREEN)
+        calc_btn.clicked.connect(self.calculate_anova)
+        action_layout.addWidget(calc_btn)
+
+        self.posthoc_btn = QPushButton("Run Post-Hoc")
+        self.posthoc_btn.setStyleSheet(BTN_BLUE)
+        self.posthoc_btn.setEnabled(False)
+        self.posthoc_btn.clicked.connect(self.run_posthoc)
+        action_layout.addWidget(self.posthoc_btn)
+
+        # Spacer between analysis and viz
+        action_layout.addSpacing(20)
+
+        self.viz_btn = QPushButton("Visualize")
+        self.viz_btn.setStyleSheet(BTN_ORANGE)
+        self.viz_btn.setEnabled(False)
+        self.viz_btn.clicked.connect(self.visualize)
+        action_layout.addWidget(self.viz_btn)
+
+        # Spacer between viz and utility
+        action_layout.addSpacing(20)
+
+        save_btn = QPushButton("Save Results (CSV)")
+        save_btn.setStyleSheet(BTN_GRAY)
+        save_btn.clicked.connect(self.save_results)
+        action_layout.addWidget(save_btn)
+
+        reset_btn = QPushButton("Reset")
+        reset_btn.setStyleSheet(BTN_RED)
+        reset_btn.clicked.connect(self.reset_all)
+        action_layout.addWidget(reset_btn)
+
+        layout.addWidget(action_group)
+
         # ── Data table ──
         self.table = QTableWidget(10, 3)
         self.table.setHorizontalHeaderLabels(["Group 1", "Group 2", "Group 3"])
-        layout.addWidget(self.table)
+        layout.addWidget(self.table, stretch=1)
 
         # ── Row buttons ──
         row_btn_layout = QHBoxLayout()
@@ -102,38 +174,6 @@ class OneWayTab(QWidget):
         row_btn_layout.addWidget(rem_row_btn)
         layout.addLayout(row_btn_layout)
 
-        # ── Action buttons ──
-        action_layout = QHBoxLayout()
-
-        calc_btn = QPushButton("Calculate ANOVA")
-        calc_btn.setStyleSheet(BTN_GREEN)
-        calc_btn.clicked.connect(self.calculate_anova)
-        action_layout.addWidget(calc_btn)
-
-        self.posthoc_btn = QPushButton("Run Post-Hoc")
-        self.posthoc_btn.setStyleSheet(BTN_BLUE)
-        self.posthoc_btn.setEnabled(False)
-        self.posthoc_btn.clicked.connect(self.run_posthoc)
-        action_layout.addWidget(self.posthoc_btn)
-
-        self.viz_btn = QPushButton("Visualize")
-        self.viz_btn.setStyleSheet(BTN_ORANGE)
-        self.viz_btn.setEnabled(False)
-        self.viz_btn.clicked.connect(self.visualize)
-        action_layout.addWidget(self.viz_btn)
-
-        save_btn = QPushButton("Save Results (CSV)")
-        save_btn.setStyleSheet(BTN_GRAY)
-        save_btn.clicked.connect(self.save_results)
-        action_layout.addWidget(save_btn)
-
-        reset_btn = QPushButton("Reset")
-        reset_btn.setStyleSheet(BTN_RED)
-        reset_btn.clicked.connect(self.reset_all)
-        action_layout.addWidget(reset_btn)
-
-        layout.addLayout(action_layout)
-
         # ── Results area ──
         self.results_text = QTextEdit()
         self.results_text.setReadOnly(True)
@@ -141,15 +181,6 @@ class OneWayTab(QWidget):
         self.results_text.setStyleSheet(MONO_FONT)
         self.results_text.setMaximumHeight(200)
         layout.addWidget(self.results_text)
-
-        # ── Visualization scroll area ──
-        self.viz_scroll = QScrollArea()
-        self.viz_scroll.setWidgetResizable(True)
-        self.viz_container = QWidget()
-        self.viz_layout = QVBoxLayout(self.viz_container)
-        self.viz_scroll.setWidget(self.viz_container)
-        self.viz_scroll.setMinimumHeight(100)
-        layout.addWidget(self.viz_scroll, stretch=1)
 
     # ── Generate table ──
     def generate_table(self):
@@ -232,7 +263,7 @@ class OneWayTab(QWidget):
     def visualize(self):
         if not self._last_results:
             return
-        self._clear_viz()
+        self._close_viz()
         try:
             r = self._last_results
             data, _ = self._extract_data()
@@ -244,10 +275,10 @@ class OneWayTab(QWidget):
                                      r["group_names"]),
                 residual_plots(r["residuals"]),
             ]
-            for fig in figs:
-                canvas = FigureCanvas(fig)
-                canvas.setMinimumHeight(350)
-                self.viz_layout.addWidget(canvas)
+            self._viz_dialog = VisualizationDialog(
+                figs, title="One-Way ANOVA — Visualizations", parent=self
+            )
+            self._viz_dialog.show()
         except Exception as e:
             QMessageBox.critical(self, "Visualization Error", str(e))
 
@@ -274,14 +305,13 @@ class OneWayTab(QWidget):
         self._last_csv = None
         self.posthoc_btn.setEnabled(False)
         self.viz_btn.setEnabled(False)
-        self._clear_viz()
+        self._close_viz()
 
     # ── Helpers ──
-    def _clear_viz(self):
-        while self.viz_layout.count():
-            child = self.viz_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+    def _close_viz(self):
+        if self._viz_dialog is not None:
+            self._viz_dialog.close()
+            self._viz_dialog = None
 
     def _parse_group_names(self, n):
         raw = self.group_names_edit.text().strip()
@@ -304,6 +334,7 @@ class TwoWayTab(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
+        self._viz_dialog = None
 
         # ── Config ──
         config_group = QGroupBox("Configuration")
@@ -342,12 +373,10 @@ class TwoWayTab(QWidget):
 
         layout.addWidget(config_group)
 
-        # ── Data table ──
-        self.table = QTableWidget()
-        layout.addWidget(self.table)
-
-        # ── Action buttons ──
-        action_layout = QHBoxLayout()
+        # ── Action buttons toolbar (below config, above table) ──
+        action_group = QGroupBox("Actions")
+        action_layout = QHBoxLayout(action_group)
+        action_layout.setContentsMargins(8, 6, 8, 6)
 
         calc_btn = QPushButton("Calculate ANOVA")
         calc_btn.setStyleSheet(BTN_GREEN)
@@ -360,11 +389,17 @@ class TwoWayTab(QWidget):
         self.posthoc_btn.clicked.connect(self.run_posthoc)
         action_layout.addWidget(self.posthoc_btn)
 
+        # Spacer between analysis and viz
+        action_layout.addSpacing(20)
+
         self.viz_btn = QPushButton("Visualize")
         self.viz_btn.setStyleSheet(BTN_ORANGE)
         self.viz_btn.setEnabled(False)
         self.viz_btn.clicked.connect(self.visualize)
         action_layout.addWidget(self.viz_btn)
+
+        # Spacer between viz and utility
+        action_layout.addSpacing(20)
 
         save_btn = QPushButton("Save Results (CSV)")
         save_btn.setStyleSheet(BTN_GRAY)
@@ -376,7 +411,11 @@ class TwoWayTab(QWidget):
         reset_btn.clicked.connect(self.reset_all)
         action_layout.addWidget(reset_btn)
 
-        layout.addLayout(action_layout)
+        layout.addWidget(action_group)
+
+        # ── Data table ──
+        self.table = QTableWidget()
+        layout.addWidget(self.table, stretch=1)
 
         # ── Results ──
         self.results_text = QTextEdit()
@@ -385,15 +424,6 @@ class TwoWayTab(QWidget):
         self.results_text.setStyleSheet(MONO_FONT)
         self.results_text.setMaximumHeight(220)
         layout.addWidget(self.results_text)
-
-        # ── Viz scroll ──
-        self.viz_scroll = QScrollArea()
-        self.viz_scroll.setWidgetResizable(True)
-        self.viz_container = QWidget()
-        self.viz_layout = QVBoxLayout(self.viz_container)
-        self.viz_scroll.setWidget(self.viz_container)
-        self.viz_scroll.setMinimumHeight(100)
-        layout.addWidget(self.viz_scroll, stretch=1)
 
         # Generate initial table
         self.generate_table()
@@ -524,7 +554,7 @@ class TwoWayTab(QWidget):
     def visualize(self):
         if not self._last_results:
             return
-        self._clear_viz()
+        self._close_viz()
         try:
             r = self._last_results
             fa = self.factor_a_edit.text().strip() or "Factor A"
@@ -555,10 +585,10 @@ class TwoWayTab(QWidget):
                 # Residual diagnostics
                 residual_plots(r["residuals"]),
             ]
-            for fig in figs:
-                canvas = FigureCanvas(fig)
-                canvas.setMinimumHeight(350)
-                self.viz_layout.addWidget(canvas)
+            self._viz_dialog = VisualizationDialog(
+                figs, title="Two-Way ANOVA — Visualizations", parent=self
+            )
+            self._viz_dialog.show()
         except Exception as e:
             QMessageBox.critical(self, "Visualization Error", str(e))
 
@@ -585,14 +615,13 @@ class TwoWayTab(QWidget):
         self._last_csv = None
         self.posthoc_btn.setEnabled(False)
         self.viz_btn.setEnabled(False)
-        self._clear_viz()
+        self._close_viz()
 
     # ── Helpers ──
-    def _clear_viz(self):
-        while self.viz_layout.count():
-            child = self.viz_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+    def _close_viz(self):
+        if self._viz_dialog is not None:
+            self._viz_dialog.close()
+            self._viz_dialog = None
 
 
 # ======================================================================
