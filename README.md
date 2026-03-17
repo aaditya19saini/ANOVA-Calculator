@@ -87,6 +87,18 @@ Both tabs include **Reset** to clear all data and start fresh.
 
 ---
 
+## 🖼️ Program Screenshots
+
+![ANOVA Calculator Screenshot 1](images/Screenshot%202026-03-17%20121632.png)
+
+![ANOVA Calculator Screenshot 2](images/Screenshot%202026-03-17%20121640.png)
+
+![ANOVA Calculator Screenshot 3](images/Screenshot%202026-03-17%20122832.png)
+
+![ANOVA Calculator Screenshot 4](images/Screenshot%202026-03-17%20123042.png)
+
+---
+
 ### Programmatic Usage
 
 Use the logic classes directly in your own scripts:
