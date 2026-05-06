@@ -48,17 +48,29 @@ ANOVA_CALC_final/
 - [Matplotlib](https://matplotlib.org/)
 - [PySide6](https://doc.qt.io/qtforpython-6/)
 
-### Installation
+### Installation (For Developers)
 
 ```bash
-pip install numpy scipy matplotlib PySide6
+pip install -r requirements.txt
 ```
+
+### Build Standalone Executable (Windows)
+
+You can build a `.exe` file so users don't need Python installed. We provide a build script that wraps PyInstaller:
+
+```bash
+python build_exe.py
+```
+This will generate `ANOVACalculator.exe` in the `dist/` directory using the generated `app_icon.ico`.
 
 ---
 
 ## 🚀 Usage
 
-### GUI Application
+### Pre-built Executable (Recommended for non-developers)
+If you don't want to install Python, simply go to the **[Releases](https://github.com/)** page (or use the GitHub Actions artifacts) and download `ANOVACalculator.exe`. Double-click to run!
+
+### Run from Source (For Developers)
 
 ```bash
 python anova_gui.py
