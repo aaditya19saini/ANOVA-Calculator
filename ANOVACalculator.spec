@@ -35,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\Users\\Aaditya Saini\\Desktop\\ANOVA_CALC_final\\app_icon.ico'],
+    icon=['c:\\Users\\Aaditya Saini\\Desktop\\ANOVA_CALC_final\\app_icon.ico'],
 )
